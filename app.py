@@ -307,16 +307,6 @@ def get_day_history(chat_history, study_day):
     ]
 
 
-def get_display_history_for_day(study_day):
-    """
-    Diese Funktion ist nur für die Anzeige im Browser:
-    Teilnehmende sehen immer ausschließlich die Nachrichten des aktuellen Tages.
-    Frühere Tage bleiben aber weiterhin in Seafile gespeichert und werden
-    über get_previous_days_context() nur im Hintergrund für den Prompt genutzt.
-    """
-    return load_chat_history_from_seafile(int(study_day))
-
-
 def get_chat_started_at(chat_history):
     for msg in chat_history:
         started_at = msg.get("chat_started_at") or msg.get("timestamp")
@@ -693,7 +683,12 @@ def login():
 
         if user and check_password_hash(user["password_hash"], password):
             session.clear()
+            session.permanent = False
             session["username"] = user["username"]
+            # Diese Markierung sorgt dafür, dass die Chatseite pro Login
+            # nur einmal geöffnet werden kann. Bei Reload/erneutem Öffnen
+            # wird die Sitzung gelöscht und die Person muss sich neu anmelden.
+            session["chat_page_used"] = False
             return redirect(url_for("home"))
 
         return render_template("login.html", error="Login fehlgeschlagen.")
@@ -720,10 +715,18 @@ def home():
     if not require_login():
         return redirect(url_for("login"))
 
+    # Sichere Reload-Sperre:
+    # Nach erfolgreichem Login darf die Chatseite genau einmal gerendert werden.
+    # Wenn dieselbe URL durch Neuladen/erneutes Öffnen erneut angefragt wird,
+    # wird die Sitzung gelöscht und die Person muss sich neu anmelden.
+    if session.get("chat_page_used"):
+        session.clear()
+        return redirect(url_for("login"))
+
+    session["chat_page_used"] = True
+
     # Wichtig: Die Startseite darf nicht schon beim Rendern Seafile abfragen.
-    # Sonst führt ein temporäres Seafile-/Env-Problem direkt nach dem Login zu
-    # einem Internal Server Error. Der echte aktive Tag wird anschließend über
-    # /load_chat im Browser geladen.
+    # Der echte aktive Tag wird anschließend über /load_chat im Browser geladen.
     return render_template("index1.html", username=session["username"], study_day=1)
 
 
@@ -734,10 +737,29 @@ def load_chat():
 
     try:
         study_day = get_active_study_day()
-        display_history = get_display_history_for_day(study_day)
+        chat_history = load_chat_history_from_seafile(study_day)
+
+        # Jeder neue Studientag startet automatisch mit seiner eigenen
+        # initialen Lumi-Nachricht. Diese Nachricht wird in der Tagesdatei
+        # gespeichert und anschließend im Browser angezeigt.
+        if not chat_history:
+            now = utc_now_iso()
+            reply = get_initial_assistant_message(study_day, chat_history)
+            chat_history.append({
+                "role": "assistant",
+                "content": reply,
+                "timestamp": now,
+                "chat_started_at": now,
+                "study_day": study_day
+            })
+            save_chat_history_to_seafile(chat_history, study_day)
+
+        # An den Browser wird nur der aktuelle Tag zurückgegeben.
+        # Frühere Tage bleiben in Seafile gespeichert und werden nur im
+        # Hintergrund über get_previous_days_context() für den Prompt genutzt.
         return jsonify({
-            "chat_history": display_history,
-            **timer_payload(display_history, study_day)
+            "chat_history": chat_history,
+            **timer_payload(chat_history, study_day)
         })
     except Exception as e:
         return jsonify({"error": f"Fehler beim Laden: {str(e)}"}), 500
