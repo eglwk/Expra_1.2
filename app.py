@@ -307,6 +307,16 @@ def get_day_history(chat_history, study_day):
     ]
 
 
+def get_display_history_for_day(study_day):
+    """
+    Diese Funktion ist nur für die Anzeige im Browser:
+    Teilnehmende sehen immer ausschließlich die Nachrichten des aktuellen Tages.
+    Frühere Tage bleiben aber weiterhin in Seafile gespeichert und werden
+    über get_previous_days_context() nur im Hintergrund für den Prompt genutzt.
+    """
+    return load_chat_history_from_seafile(int(study_day))
+
+
 def get_chat_started_at(chat_history):
     for msg in chat_history:
         started_at = msg.get("chat_started_at") or msg.get("timestamp")
@@ -724,10 +734,10 @@ def load_chat():
 
     try:
         study_day = get_active_study_day()
-        chat_history = load_chat_history_from_seafile(study_day)
+        display_history = get_display_history_for_day(study_day)
         return jsonify({
-            "chat_history": chat_history,
-            **timer_payload(chat_history, study_day)
+            "chat_history": display_history,
+            **timer_payload(display_history, study_day)
         })
     except Exception as e:
         return jsonify({"error": f"Fehler beim Laden: {str(e)}"}), 500
