@@ -57,6 +57,12 @@
       font-weight: bold;
     }
 
+    .header-username {
+      font-size: 12px;
+      opacity: 0.95;
+      margin-top: 2px;
+    }
+
     .header-subtitle {
       font-size: 12px;
       opacity: 0.95;
@@ -365,9 +371,11 @@ if (!response.ok) {
           console.error(error);
         } finally {
           isSending = false;
-          sendButton.disabled = false;
-          inputField.disabled = false;
-          inputField.focus();
+          if (!chatExpired) {
+            sendButton.disabled = false;
+            inputField.disabled = false;
+            inputField.focus();
+          }
         }
       }
 
@@ -396,10 +404,13 @@ if (!response.ok) {
       <img src="/static/chattiHFI.png" alt="Chatti">
 
       <div class="header-text">
-      <div class="header-title">Lumi</div>
-<div class="header-subtitle">
-  Tag 1 von 5
-</div>
+        <div class="header-title">Lumi</div>
+        <div class="header-username">
+          Eingeloggt als: {{ username }}
+        </div>
+        <div class="header-subtitle">
+          Tag 1 von 5
+        </div>
       </div>
 
       <button class="logout-button" type="button" onclick="window.location.href='/logout'">
@@ -425,3 +436,4 @@ if (!response.ok) {
   </div>
 </body>
 </html>
+
