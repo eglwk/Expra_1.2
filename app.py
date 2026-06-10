@@ -526,7 +526,7 @@ CLOSING_ASSISTANT_MESSAGES = {
     2: "Danke dir für deine Offenheit. Ich hatte viel Freude dabei, gemeinsam Deinen Umgang mit Entspannungsmethoden unter die Lupe zu nehmen, und hoffe, dass ich Dir ein paar Impulse für zukünftige Entspannung im Alltag mitgeben konnte. Damit sind wir am Ende unseres heutigen Gesprächs angekommen. Ich freue mich auf morgen.",
     3: "Vielen Dank für Deine Offenheit und Deine Teilnahme heute. Sich mit dem eigenen Schlaf und den eigenen Bedürfnissen auseinanderzusetzen, ist ein wichtiger Schritt. Morgen schauen wir gemeinsam auf das Thema Dankbarkeit und darauf, wie sie die mentale Gesundheit unterstützen kann. Damit sind wir am Ende unseres heutigen Gesprächs angekommen. Ich freue mich auf morgen.",
     4: "Danke für das heutige Gespräch, Deine Offenheit und dafür, dass ich meine Erfahrungen mit Dir teilen konnte. Ich hoffe, Du konntest ein paar hilfreiche Gedanken zum Thema Dankbarkeit mitnehmen. Damit sind wir am Ende unseres heutigen Gesprächs angekommen. Ich freue mich auf morgen."
-
+}
 
 
 def get_closing_assistant_message(study_day):
