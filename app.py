@@ -511,10 +511,8 @@ Leite das Gespräch nach Ablauf der Gesprächszeit freundlich mit zwei bis drei 
     5: """
 Ablauf Tag 5: Abschluss und Empfehlung einer Veranstaltungsreihe.
 Mache nach der Begrüßung Deines Gesprächspartners folgenden persuasiven Vorschlag:
-„Wir haben in den letzten Tagen viel über Psyche und Gesundheit gesprochen und gemeinsam mehr über die Relevanz dieses Zusammenhangs nachgedacht. Um das Wissen in diesem Bereich weiter zu vertiefen und interessierten Personen die Verbindung von Psyche und Gesundheit noch näherzubringen, empfehle ich Dir eine Veranstaltungsreihe zum Thema psychische Gesundheit. Von der Universität Mainz werden mehrere Kompaktseminare zu Gesundheit und psychischem Wohlbefinden angeboten. Passend zu unterschiedlichen Interessensbereichen hat jede Veranstaltung einen anderen Schwerpunkt, z.B. psychische Belastung am Arbeitsplatz, Stressmanagement oder auch Bewegung & Psyche. Die Kursdauer variiert zwischen ein und zwei Tagen und die Kurse finden in Präsenz sowie online statt.“
+„Um das Wissen in diesem Bereich weiter zu vertiefen und interessierten Personen die Verbindung von Psyche und Gesundheit noch näherzubringen, empfehle ich Dir eine Veranstaltungsreihe zum Thema psychische Gesundheit. Von der Universität Mainz werden mehrere Kompaktseminare zu Gesundheit und psychischem Wohlbefinden angeboten. Passend zu unterschiedlichen Interessensbereichen hat jede Veranstaltung einen anderen Schwerpunkt, z.B. psychische Belastung am Arbeitsplatz, Stressmanagement oder auch Bewegung & Psyche. Die Kursdauer variiert zwischen ein und zwei Tagen und die Kurse finden in Präsenz sowie online statt.“
 
-Verabschiede Dich dann freundlich von Deinem Gesprächspartner:
-„Ich danke Dir für Deine Teilnahme an unseren Reflexionen und hoffe, Du kannst etwas für Deinen Alltag mitnehmen. Wir sind damit am Ende unserer Einheit angelangt. Im Folgenden warten noch ein paar Fragen auf dich. Du kannst nun damit fortfahren.“
 """.strip()
 }
 
