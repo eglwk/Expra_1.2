@@ -359,69 +359,46 @@ def get_active_study_day(chat_history=None):
     return MAX_STUDY_DAY
 
 
-def extract_preferred_name(text):
-    if not text:
-        return None
+def build_last_day_memory(chat_history, study_day):
+    snippets = []
 
-    patterns = [
-        r"\b(?:ich heiße|mein name ist|nenn mich|du kannst mich)\s+([A-ZÄÖÜa-zäöüß][A-ZÄÖÜa-zäöüß\-]{1,30})",
-        r"^\s*([A-ZÄÖÜa-zäöüß][A-ZÄÖÜa-zäöüß\-]{1,30})\s*$"
-    ]
+    for msg in get_day_history(chat_history, study_day)[-8:]:
+        if msg.get("content"):
+            role = "Teilnehmende Person" if msg.get("role") == "user" else "Lumi"
+            snippets.append(f"{role}: {msg['content']}")
 
-    for pattern in patterns:
-        match = re.search(pattern, text.strip(), flags=re.IGNORECASE)
-        if match:
-            name = match.group(1).strip(" .,!?:;\n\t")
-            if 2 <= len(name) <= 30:
-                return name
-
-    return None
+    return {
+        "completed_day": int(study_day),
+        "day_context": "\n".join(snippets),
+        "saved_at": utc_now_iso()
+    }
 
 
-def get_preferred_name_from_history(chat_history):
-    for msg in clean_history(chat_history):
-        if msg.get("role") == "user":
-            name = extract_preferred_name(msg.get("content", ""))
-            if name:
-                return name
-    return None
-
-
-def update_participant_memory_from_message(user_message):
+def save_last_day_memory(chat_history, study_day):
     memory = load_participant_memory()
-    if not memory.get("preferred_name"):
-        preferred_name = extract_preferred_name(user_message)
-        if preferred_name:
-            memory["preferred_name"] = preferred_name
-            save_participant_memory(memory)
+
+    if not isinstance(memory, dict):
+        memory = {}
+
+    if "days" not in memory or not isinstance(memory["days"], dict):
+        memory["days"] = {}
+
+    memory["days"][str(int(study_day))] = build_last_day_memory(chat_history, study_day)
+    save_participant_memory(memory)
 
 
 def get_previous_days_context(active_day, chat_history=None):
     context_parts = []
     memory = load_participant_memory()
-    name = memory.get("preferred_name")
-
-    if name:
-        context_parts.append(
-            f"Die teilnehmende Person hat sich Dir als {name} vorgestellt. "
-            "Sprich sie, wenn passend, mit diesem Namen an."
-        )
+    days_memory = memory.get("days", {}) if isinstance(memory, dict) else {}
 
     for day in range(1, int(active_day)):
-        history = load_chat_history_from_seafile(day)
-        if not history:
-            continue
+        day_memory = days_memory.get(str(day)) if isinstance(days_memory, dict) else None
 
-        snippets = []
-        for msg in history[-8:]:
-            if msg.get("content"):
-                role = "Teilnehmende Person" if msg.get("role") == "user" else "Lumi"
-                snippets.append(f"{role}: {msg['content']}")
-
-        if snippets:
+        if day_memory and day_memory.get("day_context"):
             context_parts.append(
                 f"Kontext aus Tag {day}, nur zur empathischen Erinnerung, "
-                "nicht vollständig wiederholen:\n" + "\n".join(snippets)
+                "nicht vollständig wiederholen:\n" + day_memory["day_context"]
             )
 
     return "\n\n".join(context_parts)
@@ -554,11 +531,8 @@ def get_system_prompt(study_day, chat_history=None):
 
 def get_initial_assistant_message(study_day, chat_history=None):
     study_day = int(study_day)
-    memory = load_participant_memory()
-    name = memory.get("preferred_name") or get_preferred_name_from_history(chat_history or [])
-    name_part = name if name else ""
-    message = INITIAL_ASSISTANT_MESSAGES.get(study_day, INITIAL_ASSISTANT_MESSAGES[1]).replace("{NAME_PART}", name_part)
-    return message.replace("Hallo ,", "Hallo").replace("Hallo  ", "Hallo ")
+    message = INITIAL_ASSISTANT_MESSAGES.get(study_day, INITIAL_ASSISTANT_MESSAGES[1])
+    return message.replace("{NAME_PART}", "").replace("Hallo ,", "Hallo").replace("Hallo  ", "Hallo ")
 
 
 def ask_mistral(chat_history, study_day):
@@ -808,8 +782,6 @@ def send():
                 **timer_payload(chat_history, study_day)
             }), 409
 
-        update_participant_memory_from_message(user_message)
-
         now = utc_now_iso()
         chat_history.append({
             "role": "user",
@@ -829,6 +801,7 @@ def send():
                 "is_closing_message": True,
                 "study_day": study_day
             })
+            save_last_day_memory(chat_history, study_day)
             save_chat_history_to_seafile(chat_history, study_day)
 
             return jsonify({
