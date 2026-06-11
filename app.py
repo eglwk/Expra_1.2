@@ -32,6 +32,7 @@ SEAFILE_BASE_URL = os.environ.get("SEAFILE_BASE_URL", "").strip().rstrip("/")
 SEAFILE_TOKEN = os.environ.get("SEAFILE_TOKEN", "").strip()
 SEAFILE_REPO_ID = os.environ.get("SEAFILE_REPO_ID", "").strip()
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+SEAFILE_DIR = "/Gruppe 2/high_empathy"
 
 # Gesprächsdauer: 7 Minuten 30 Sekunden.
 # Nach Ablauf wird nicht automatisch beendet.
@@ -132,7 +133,7 @@ def get_memory_filename():
 
 
 def get_file_path(filename):
-    return f"/{filename}"
+    return f"{SEAFILE_DIR.rstrip('/')}/{filename}"
 
 
 def seafile_headers():
@@ -157,7 +158,12 @@ def ensure_seafile_config():
 def get_upload_link():
     ensure_seafile_config()
     url = f"{SEAFILE_BASE_URL}/api2/repos/{SEAFILE_REPO_ID}/upload-link/"
-    response = requests.get(url, headers=seafile_headers(), timeout=30)
+    response = requests.get(
+        url,
+        headers=seafile_headers(),
+        params={"p": SEAFILE_DIR},
+        timeout=30
+    )
     if response.status_code != 200:
         raise Exception(f"Upload-Link fehlgeschlagen: {response.status_code} {response.text}")
     return response.text.strip('"')
@@ -204,7 +210,7 @@ def upload_new_json_file_to_seafile(filename, payload):
         upload_link,
         headers={"Authorization": f"Token {SEAFILE_TOKEN}"},
         files={"file": (filename, file_bytes, "application/json")},
-        data={"parent_dir": "/", "replace": "1"},
+        data={"parent_dir": SEAFILE_DIR, "replace": "1"},
         timeout=60
     )
     if response.status_code != 200:
@@ -486,7 +492,7 @@ Leite das Gespräch nach Ablauf der Gesprächszeit freundlich mit zwei bis drei 
 
 INITIAL_ASSISTANT_MESSAGES = {
     1: "Hallo, ich bin Lumi. Ich wurde als Chat-Bot für Themen aus dem Bereich psychische Gesundheit entwickelt. Ich werde dich in den nächsten Tagen ein Stück begleiten und mit dir über Themen rund um psychische Gesundheit, Stress und Wohlbefinden sprechen. Du kannst dabei ganz offen erzählen, was dich beschäftigt, was dir guttut oder was dir vielleicht gerade schwerfällt. Wie geht es Dir heute?",
-    
+
     2: "Willkommen zur heutigen Gesundheitsreflexion. Im gestrigen Gespräch standen Stress und Stressbewältigung im Mittelpunkt. Daran anschließend sollen heute verschiedene Möglichkeiten der Entspannung thematisiert werden. Wenn Du an gestern denkst: Gab es etwas aus unserem Gespräch über Stress, das Dir noch nachgegangen ist oder das Du heute mitbringst?",
 
     3: "Willkommen zur heutigen Gesundheitsreflexion. Im vorherigen Gespräch standen Entspannung und verschiedene Entspannungsmethoden im Mittelpunkt. Da Erholung eng mit gesundem Schlaf verbunden ist, soll nun das Thema Schlafhygiene betrachtet werden. Wenn Du an die letzten Tage denkst: Wie erholt oder angespannt fühlst Du Dich gerade heute?",
@@ -893,4 +899,3 @@ def test_models():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
