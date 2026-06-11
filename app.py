@@ -32,7 +32,7 @@ SEAFILE_BASE_URL = os.environ.get("SEAFILE_BASE_URL", "").strip().rstrip("/")
 SEAFILE_TOKEN = os.environ.get("SEAFILE_TOKEN", "").strip()
 SEAFILE_REPO_ID = os.environ.get("SEAFILE_REPO_ID", "").strip()
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-SEAFILE_DIR = "/Gruppe 2/high_empathy"
+SEAFILE_DIR = "/Gruppe 1/Low_SD"
 
 # Gesprächsdauer: 7 Minuten 30 Sekunden.
 # Nach Ablauf wird nicht automatisch beendet.
