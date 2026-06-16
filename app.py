@@ -44,6 +44,15 @@ CONVERSATION_DURATION_SECONDS = int(
     )
 )
 
+# Nach 10 Minuten ab initialer Nachricht wird der jeweilige Tageschat
+# automatisch als geschlossen markiert, wie ansonsten nach der Endnachricht.
+INITIAL_AUTO_CLOSE_SECONDS = int(
+    os.environ.get(
+        "INITIAL_AUTO_CLOSE_SECONDS",
+        str(int(float(os.environ.get("INITIAL_AUTO_CLOSE_MINUTES", "10")) * 60))
+    )
+)
+
 # Pause nach der Abschlussnachricht, bevor der nächste Studientag startet.
 DAY_SWITCH_PAUSE_SECONDS = int(
     os.environ.get(
@@ -346,23 +355,16 @@ def chat_time_limit_reached(chat_history):
     return get_chat_elapsed_seconds(chat_history) >= CONVERSATION_DURATION_SECONDS
 
 
+def initial_auto_close_limit_reached(chat_history):
+    return get_chat_elapsed_seconds(chat_history) >= INITIAL_AUTO_CLOSE_SECONDS
+
+
 def next_day_is_unlocked(chat_history):
     closed_at = get_chat_closed_at(chat_history)
     if not closed_at:
         return False
     elapsed_after_closing = (datetime.now(timezone.utc) - closed_at).total_seconds()
     return elapsed_after_closing >= DAY_SWITCH_PAUSE_SECONDS
-
-
-def get_active_study_day(chat_history=None):
-    # Mit Login/Seafile ist Seafile die Quelle der Wahrheit.
-    for day in range(1, MAX_STUDY_DAY + 1):
-        day_history = load_chat_history_from_seafile(day)
-        if not day_history:
-            return day
-        if not next_day_is_unlocked(day_history):
-            return day
-    return MAX_STUDY_DAY
 
 
 def build_last_day_memory(chat_history, study_day):
@@ -391,6 +393,53 @@ def save_last_day_memory(chat_history, study_day):
 
     memory["days"][str(int(study_day))] = build_last_day_memory(chat_history, study_day)
     save_participant_memory(memory)
+
+
+def close_chat_with_closing_message(chat_history, study_day):
+    reply = get_closing_assistant_message(study_day)
+    closed_at = utc_now_iso()
+
+    chat_history.append({
+        "role": "assistant",
+        "content": reply,
+        "timestamp": closed_at,
+        "conversation_closed_at": closed_at,
+        "is_closing_message": True,
+        "study_day": study_day
+    })
+
+    save_last_day_memory(chat_history, study_day)
+    save_chat_history_to_seafile(chat_history, study_day)
+
+    return reply
+
+
+def auto_close_chat_after_initial_timeout(chat_history, study_day):
+    chat_history = clean_history(chat_history)
+
+    if not chat_history:
+        return chat_history
+
+    if chat_is_closed(chat_history):
+        return chat_history
+
+    if initial_auto_close_limit_reached(chat_history):
+        close_chat_with_closing_message(chat_history, study_day)
+
+    return chat_history
+
+
+def get_active_study_day(chat_history=None):
+    # Mit Login/Seafile ist Seafile die Quelle der Wahrheit.
+    for day in range(1, MAX_STUDY_DAY + 1):
+        day_history = load_chat_history_from_seafile(day)
+        day_history = auto_close_chat_after_initial_timeout(day_history, day)
+
+        if not day_history:
+            return day
+        if not next_day_is_unlocked(day_history):
+            return day
+    return MAX_STUDY_DAY
 
 
 def get_previous_days_context(active_day, chat_history=None):
@@ -697,6 +746,7 @@ def load_chat():
     try:
         study_day = get_active_study_day()
         chat_history = load_chat_history_from_seafile(study_day)
+        chat_history = auto_close_chat_after_initial_timeout(chat_history, study_day)
 
         # Jeder neue Studientag startet automatisch mit seiner eigenen
         # initialen Lumi-Nachricht. Diese Nachricht wird in der Tagesdatei
@@ -736,6 +786,7 @@ def start_chat():
     try:
         study_day = get_active_study_day()
         chat_history = load_chat_history_from_seafile(study_day)
+        chat_history = auto_close_chat_after_initial_timeout(chat_history, study_day)
 
         if chat_history:
             return jsonify({
@@ -785,6 +836,7 @@ def send():
     try:
         study_day = get_active_study_day()
         chat_history = load_chat_history_from_seafile(study_day)
+        chat_history = auto_close_chat_after_initial_timeout(chat_history, study_day)
 
         if chat_is_closed(chat_history):
             return jsonify({
@@ -802,18 +854,7 @@ def send():
         })
 
         if chat_time_limit_reached(chat_history):
-            reply = get_closing_assistant_message(study_day)
-            closed_at = utc_now_iso()
-            chat_history.append({
-                "role": "assistant",
-                "content": reply,
-                "timestamp": closed_at,
-                "conversation_closed_at": closed_at,
-                "is_closing_message": True,
-                "study_day": study_day
-            })
-            save_last_day_memory(chat_history, study_day)
-            save_chat_history_to_seafile(chat_history, study_day)
+            reply = close_chat_with_closing_message(chat_history, study_day)
 
             return jsonify({
                 "reply": reply,
