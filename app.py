@@ -49,7 +49,7 @@ CONVERSATION_DURATION_SECONDS = int(
 INITIAL_AUTO_CLOSE_SECONDS = int(
     os.environ.get(
         "INITIAL_AUTO_CLOSE_SECONDS",
-        str(int(float(os.environ.get("INITIAL_AUTO_CLOSE_MINUTES", "10")) * 60))
+        str(int(float(os.environ.get("INITIAL_AUTO_CLOSE_MINUTES", "60")) * 60))
     )
 )
 
@@ -57,7 +57,7 @@ INITIAL_AUTO_CLOSE_SECONDS = int(
 DAY_SWITCH_PAUSE_SECONDS = int(
     os.environ.get(
         "DAY_SWITCH_PAUSE_SECONDS",
-        str(int(float(os.environ.get("DAY_SWITCH_PAUSE_MINUTES", "1")) * 60))
+        str(int(float(os.environ.get("DAY_SWITCH_PAUSE_MINUTES", "20")) * 60))
     )
 )
 
