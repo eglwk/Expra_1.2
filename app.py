@@ -322,6 +322,10 @@ def get_day_history(chat_history, study_day):
     ]
 
 
+def has_user_message(chat_history):
+    return any(msg.get("role") == "user" for msg in clean_history(chat_history))
+
+
 def get_chat_started_at(chat_history):
     for msg in chat_history:
         started_at = msg.get("chat_started_at") or msg.get("timestamp")
@@ -425,6 +429,14 @@ def auto_close_chat_after_initial_timeout(chat_history, study_day):
         return chat_history
 
     if chat_is_closed(chat_history):
+        return chat_history
+
+    # Anpassung:
+    # Ein Tag wird nur automatisch geschlossen, wenn an diesem Tag
+    # mindestens eine Nutzer-Nachricht existiert.
+    # Dadurch kann ein neu automatisch gestarteter Tag mit nur der
+    # initialen Lumi-Nachricht nicht direkt wieder geschlossen werden.
+    if not has_user_message(chat_history):
         return chat_history
 
     started_at = get_chat_started_at(chat_history)
