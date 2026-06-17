@@ -57,7 +57,7 @@ INITIAL_AUTO_CLOSE_SECONDS = int(
 DAY_SWITCH_PAUSE_SECONDS = int(
     os.environ.get(
         "DAY_SWITCH_PAUSE_SECONDS",
-        str(int(float(os.environ.get("DAY_SWITCH_PAUSE_MINUTES", "10")) * 60))
+        str(int(float(os.environ.get("DAY_SWITCH_PAUSE_MINUTES", "2")) * 60))
     )
 )
 
