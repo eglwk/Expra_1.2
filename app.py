@@ -7,7 +7,7 @@ import requests
 import psycopg2
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 load_dotenv()
 
@@ -395,9 +395,13 @@ def save_last_day_memory(chat_history, study_day):
     save_participant_memory(memory)
 
 
-def close_chat_with_closing_message(chat_history, study_day):
+def close_chat_with_closing_message(chat_history, study_day, closed_at=None):
     reply = get_closing_assistant_message(study_day)
-    closed_at = utc_now_iso()
+
+    if closed_at is None:
+        closed_at = utc_now_iso()
+    elif isinstance(closed_at, datetime):
+        closed_at = closed_at.astimezone(timezone.utc).isoformat()
 
     chat_history.append({
         "role": "assistant",
@@ -423,8 +427,18 @@ def auto_close_chat_after_initial_timeout(chat_history, study_day):
     if chat_is_closed(chat_history):
         return chat_history
 
-    if initial_auto_close_limit_reached(chat_history):
-        close_chat_with_closing_message(chat_history, study_day)
+    started_at = get_chat_started_at(chat_history)
+    if not started_at:
+        return chat_history
+
+    auto_closed_at = started_at + timedelta(seconds=INITIAL_AUTO_CLOSE_SECONDS)
+
+    if datetime.now(timezone.utc) >= auto_closed_at:
+        close_chat_with_closing_message(
+            chat_history,
+            study_day,
+            closed_at=auto_closed_at
+        )
 
     return chat_history
 
